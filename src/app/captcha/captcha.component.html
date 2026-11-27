@@ -1,0 +1,82 @@
+@if (stage(); as st) {
+  <section class="card">
+    <div class="stage-header">
+      <span>Stage {{ index() + 1 }} of {{ captcha.total() }}</span>
+      <span class="muted">{{ captcha.solvedCount() }} solved</span>
+    </div>
+    <div class="progress" role="progressbar" aria-label="Challenge progress"
+         [attr.aria-valuenow]="progress()" aria-valuemin="0" aria-valuemax="100">
+      <div class="progress-bar" [style.width.%]="progress()"></div>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      @for (i of [index()]; track i) {
+        <div class="stage">
+          @switch (st.challenge.type) {
+            @case ('image') {
+              @if (st.challenge.type === 'image') {
+                <h2 id="prompt">{{ st.challenge.prompt }}</h2>
+                <div class="grid" role="group" aria-labelledby="prompt">
+                  @for (tile of st.challenge.tiles; track $index) {
+                    <button type="button" class="tile" [class.selected]="selected.includes($index)"
+                            [attr.aria-pressed]="selected.includes($index)"
+                            [attr.aria-label]="'Image ' + ($index + 1) + ': ' + tile.label"
+                            [disabled]="control.disabled"
+                            (click)="toggleTile($index)">
+                      <span aria-hidden="true">{{ tile.emoji }}</span>
+                    </button>
+                  }
+                </div>
+              }
+            }
+            @case ('math') {
+              @if (st.challenge.type === 'math') {
+                <h2><label for="math-answer">Solve: {{ st.challenge.question }} = ?</label></h2>
+                <input id="math-answer" class="input" type="number" inputmode="numeric"
+                       autocomplete="off" [formControl]="control" placeholder="Your answer" />
+              }
+            }
+            @case ('text') {
+              @if (st.challenge.type === 'text') {
+                <h2><label for="text-answer">Type the characters you see</label></h2>
+                <div class="code" aria-hidden="true">
+                  @for (ch of st.challenge.code.split(''); track $index) {
+                    <span [style]="charStyle(st.challenge.code, $index)">{{ ch }}</span>
+                  }
+                </div>
+                <input id="text-answer" class="input" type="text" autocomplete="off"
+                       autocapitalize="off" spellcheck="false" [formControl]="control" placeholder="Enter code" />
+              }
+            }
+          }
+
+          <div class="feedback" aria-live="polite">
+            @if (st.solved) {
+              <p class="success">✓ Stage solved</p>
+            } @else if (submitted && control.hasError('required')) {
+              <p class="error">
+                {{ st.challenge.type === 'image' ? 'Please select at least one image.' : 'Please enter an answer.' }}
+              </p>
+            } @else if (control.hasError('incorrect')) {
+              <p class="error">
+                Not quite — try again.
+                @if (st.challenge.type === 'image') { Hint: check every tile carefully. }
+                @if (st.challenge.type === 'text') { Hint: letters are not case-sensitive. }
+              </p>
+            }
+          </div>
+        </div>
+      }
+
+      <div class="actions">
+        <button type="button" class="btn" (click)="previous()" [disabled]="index() === 0">← Previous</button>
+        @if (!st.solved) {
+          <button type="button" class="btn ghost" (click)="refresh()">↻ New challenge</button>
+        }
+        <button type="submit" class="btn primary">
+          {{ st.solved ? (index() === captcha.total() - 1 ? 'See results' : 'Next →') : 'Verify' }}
+        </button>
+      </div>
+    </form>
+  </section>
+}
